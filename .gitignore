@@ -1,0 +1,29 @@
+# Credentials and runtime configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Python runtime data and artifacts
+api-service/data/
+api-service/models/*.joblib
+api-service/**/__pycache__/
+api-service/**/*.py[cod]
+api-service/.pytest_cache/
+
+# Node.js build and local tooling
+web-console/node_modules/
+web-console/dist/
+web-console/.manus-logs/
+web-console/.env
+web-console/.env.*
+web-console/*.tsbuildinfo
+web-console/coverage/
+
+# Local and editor files
+*.log
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,146 @@
+version: 1
+settings:
+  safe_threshold: 2.0
+  suspicious_threshold: 5.0
+  phishing_threshold: 8.0
+  max_body_chars_for_matching: 200000
+rules:
+  - id: ATTACHMENT_EXECUTABLE
+    name: 可执行或脚本附件
+    category: malicious_attachment
+    severity: critical
+    score: 10.0
+    target: attachment.extension
+    operator: in
+    values: [".exe", ".dll", ".scr", ".com", ".bat", ".cmd", ".ps1", ".vbs", ".vbe", ".js", ".jse", ".jar", ".msi", ".hta", ".lnk", ".iso", ".img"]
+    description: 附件包含常见可执行、脚本或磁盘映像格式。
+
+  - id: ATTACHMENT_MACRO_DOCUMENT
+    name: 含宏的 Office 文档
+    category: malicious_attachment
+    severity: high
+    score: 8.0
+    target: attachment.extension
+    operator: in
+    values: [".docm", ".xlsm", ".pptm", ".xlam", ".xltm", ".ppsm", ".potm"]
+    description: 附件为可携带 VBA 宏的 Office 文档。
+
+  - id: ATTACHMENT_ARCHIVE
+    name: 压缩文件附件
+    category: suspicious_attachment
+    severity: medium
+    score: 2.0
+    target: attachment.extension
+    operator: in
+    values: [".zip", ".rar", ".7z", ".gz", ".bz2", ".xz", ".tar"]
+    description: 压缩包可能用于隐藏真实附件类型，需要结合其他信号复核。
+
+  - id: ATTACHMENT_DOUBLE_EXTENSION
+    name: 双扩展名附件
+    category: malicious_attachment
+    severity: high
+    score: 8.0
+    target: attachment.filename
+    operator: regex
+    pattern: '(?i)\.[a-z0-9]{1,5}\.(exe|scr|com|bat|cmd|ps1|vbs|js|jse|jar|msi|hta|lnk)$'
+    description: 附件以伪装性双扩展名结尾。
+
+  - id: ATTACHMENT_EICAR_TEST
+    name: EICAR 测试恶意代码签名
+    category: malicious_attachment
+    severity: critical
+    score: 10.0
+    target: attachment.content_text
+    operator: contains
+    value: 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+    description: 附件包含 EICAR 防病毒测试字符串。
+
+  - id: SENDER_REPLYTO_MISMATCH
+    name: 发件人与回复地址域不一致
+    category: abnormal_sender
+    severity: medium
+    score: 3.5
+    target: sender.reply_to_domain_mismatch
+    operator: equals
+    value: true
+    description: 发件地址与 Reply-To 地址域名不同。
+
+  - id: DISPLAY_NAME_EMAIL_MISMATCH
+    name: 显示名伪装邮箱
+    category: abnormal_sender
+    severity: medium
+    score: 3.0
+    target: sender.display_name_email_mismatch
+    operator: equals
+    value: true
+    description: 发件人显示名中含有与实际邮箱不一致的邮箱地址。
+
+  - id: PHISHING_CREDENTIAL_KEYWORDS
+    name: 凭据诱导文案
+    category: phishing
+    severity: high
+    score: 5.0
+    target: body.combined
+    operator: regex
+    pattern: '(?is)(verify|verification|password|login|sign\s*in|account\s*(?:suspend|locked|disabled)|confirm\s*(?:your\s*)?(?:identity|account)|验证码|验证身份|账户.{0,8}(?:冻结|停用|异常)|立即登录|重置密码)'
+    description: 正文出现常见账户凭据或身份验证诱导语。
+
+  - id: PHISHING_URGENCY_KEYWORDS
+    name: 紧迫性诱导文案
+    category: phishing
+    severity: medium
+    score: 2.5
+    target: body.combined
+    operator: regex
+    pattern: '(?is)\b(urgent|immediately|within\s+24\s+hours|final\s+warning|action\s+required|紧急|立即|最后警告|限时|逾期)\b'
+    description: 正文出现施压式紧迫措辞。
+
+  - id: PHISHING_SHORTENER_URL
+    name: 短链接或重定向链接
+    category: phishing
+    severity: medium
+    score: 3.0
+    target: urls.hosts
+    operator: regex
+    pattern: '(?i)^(bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly|rebrand\.ly|ow\.ly)$'
+    description: 邮件包含常用于隐藏落地页的短链接域名。
+
+  - id: PHISHING_IP_URL
+    name: IP 地址形式的 URL
+    category: phishing
+    severity: high
+    score: 4.0
+    target: urls.hosts
+    operator: regex
+    pattern: '^(?:\d{1,3}\.){3}\d{1,3}$'
+    description: 邮件 URL 使用 IPv4 地址代替域名。
+
+  - id: PHISHING_AT_SIGN_URL
+    name: URL 用户名混淆
+    category: phishing
+    severity: high
+    score: 4.0
+    target: urls.raw
+    operator: regex
+    pattern: '(?i)https?://[^\s/@]+@'
+    description: URL 在主机名前使用 @ 符号混淆真实站点。
+
+  - id: HTML_FORM_PASSWORD
+    name: HTML 密码表单
+    category: phishing
+    severity: high
+    score: 5.0
+    target: body.html
+    operator: regex
+    pattern: '(?is)<(?:input)[^>]+type\s*=\s*["\x27]?password'
+    description: 邮件 HTML 含密码输入控件。
+
+  - id: HTML_JAVASCRIPT
+    name: HTML 内嵌脚本
+    category: suspicious_content
+    severity: medium
+    score: 2.0
+    target: body.html
+    operator: regex
+    pattern: '(?is)<script\b|javascript\s*:'
+    description: HTML 正文包含脚本标签或 javascript 协议。

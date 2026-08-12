@@ -1,0 +1,32 @@
+From: "Microsoft Security <security@contoso.example>" <attacker@evil.example>
+To: employee@example.org
+Cc: security@example.org
+Reply-To: account-help@credential-steal.example
+Subject: Urgent: Verify your account immediately
+Date: Tue, 12 Aug 2026 09:30:00 +0800
+Message-ID: <sample-phish-001@evil.example>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="outer-boundary"
+
+--outer-boundary
+Content-Type: multipart/alternative; boundary="inner-boundary"
+
+--inner-boundary
+Content-Type: text/plain; charset="utf-8"
+
+Final warning: your account will be suspended within 24 hours.
+Verify your password immediately at http://bit.ly/secure-login.
+
+--inner-boundary
+Content-Type: text/html; charset="utf-8"
+
+<html><body><p>Verify your account now.</p><a href="http://198.51.100.10/login">Sign in</a></body></html>
+
+--inner-boundary--
+--outer-boundary
+Content-Type: application/octet-stream; name="invoice.pdf.exe"
+Content-Disposition: attachment; filename="invoice.pdf.exe"
+Content-Transfer-Encoding: 7bit
+
+This is a harmless test attachment for rule validation.
+--outer-boundary--

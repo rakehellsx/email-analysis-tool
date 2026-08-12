@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#15261f" />
+    <title>邮件安全分析控制台</title>
+    <style>
+      :root { --ink:#182820; --paper:#f5f2e9; --card:#fffdf7; --line:#d9d5c8; --accent:#c7732c; --safe:#37755b; --muted:#6b776e; }
+      *{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Microsoft YaHei",sans-serif}
+      header{background:var(--ink);color:#fffaf0;padding:26px max(24px,calc((100vw - 1120px)/2));display:flex;justify-content:space-between;align-items:center;gap:18px}.brand{display:flex;gap:13px;align-items:center}.mark{width:36px;height:36px;border:1px solid #9bc7ae;border-radius:10px;display:grid;place-items:center;color:#e9bd83;font-size:18px}.brand b{font-family:Georgia,serif;font-size:21px}.sub{color:#b8c9bd;font-size:12px}.health{font:12px ui-monospace,monospace;border:1px solid #51705f;border-radius:999px;padding:6px 10px;color:#bde3c9}
+      main{max-width:1120px;margin:0 auto;padding:34px 24px 60px}.intro{margin-bottom:26px}.eyebrow{font:11px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#aa6326}.intro h1{font:700 clamp(30px,5vw,48px)/1.04 Georgia,serif;margin:8px 0 10px}.intro p{color:var(--muted);max-width:760px}
+      .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:23px;box-shadow:0 12px 28px rgba(50,57,43,.06)}h2{font:700 21px Georgia,serif;margin:0 0 8px}p.note{margin:0 0 17px;color:var(--muted);font-size:13px}.drop{border:1.5px dashed #c9b99e;border-radius:13px;padding:26px 16px;text-align:center;background:#fcf8ed;margin:16px 0}.drop input{max-width:100%}.filename{min-height:22px;color:var(--muted);font-size:13px;margin-top:9px}button{appearance:none;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:700;padding:11px 16px;cursor:pointer;transition:.15s}button:disabled{opacity:.45;cursor:not-allowed}button.secondary{background:#284b3b;margin-top:13px;width:100%}.status{margin:16px 0 0;padding:12px 14px;border-radius:10px;background:#edf3eb;color:#315a45;font-size:13px}.status.error{background:#fbeae4;color:#944c37}.hidden{display:none!important}
+      #result{margin-top:20px}.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.metric{padding:13px;border:1px solid var(--line);border-radius:11px}.metric label{display:block;color:var(--muted);font-size:11px}.metric b{display:block;margin-top:2px;font-size:18px}.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.chip{padding:4px 8px;border-radius:999px;background:#f0e3d1;color:#8c4f20;font-size:12px}.engine{border-left:3px solid #c7732c;padding:9px 12px;background:#fbf5ea;margin:11px 0}.detail{margin-top:16px}.detail summary{cursor:pointer;color:#4d6256;font-weight:700}.detail pre{white-space:pre-wrap;word-break:break-word;max-height:330px;overflow:auto;background:#182820;color:#dce9df;padding:13px;border-radius:10px;font-size:12px}
+      footer{margin-top:34px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:17px}@media(max-width:760px){header{padding:20px 18px}.grid{grid-template-columns:1fr}main{padding:25px 17px}.summary{grid-template-columns:1fr}.health{display:none}}
+    </style>
+  </head>
+  <body>
+    <header><div class="brand"><div class="mark">✉</div><div><b>邮件安全分析</b><div class="sub">规则 · 本地模型 · Rspamd</div></div></div><div id="health" class="health">检查服务中</div></header>
+    <main>
+      <section class="intro"><div class="eyebrow">同源部署控制台</div><h1>上传邮件，快速审阅检测结果。</h1><p>服务解析 RFC 822/MIME 结构、附件和链接；不会执行附件或访问邮件中的 URL。规则、机器学习与 Rspamd 结果会合并展示。</p></section>
+      <div class="grid">
+        <section class="card"><h2>邮件分析</h2><p class="note">支持 EML 文件，最大 15 MB。</p><div class="drop"><input id="eml" type="file" accept=".eml,message/rfc822" /><div id="emlName" class="filename">尚未选择邮件</div></div><button id="analyze">提交分析</button><div id="mailStatus" class="status hidden"></div></section>
+        <section class="card"><h2>模型训练</h2><p class="note">仅上传脱敏 JSONL/NDJSON。每行需包含 <code>label: ham|spam</code> 与 <code>text</code>，至少 10 条且两类均存在。</p><div class="drop"><input id="dataset" type="file" accept=".jsonl,.ndjson,application/x-ndjson" /><div id="datasetName" class="filename">尚未选择训练集</div></div><button id="train" class="secondary">验证并训练模型</button><div id="trainStatus" class="status hidden"></div></section>
+      </div>
+      <section id="result" class="card hidden"><div class="eyebrow">分析结果</div><h2 id="resultTitle">检测结论</h2><div class="summary"><div class="metric"><label>邮件性质</label><b id="nature">—</b></div><div class="metric"><label>综合风险评分</label><b id="score">—</b></div><div class="metric"><label>建议动作</label><b id="action">—</b></div></div><div><b>规则证据</b><div id="rules" class="chips"></div></div><div><b>外部检测引擎</b><div id="engines"></div></div><details class="detail"><summary>查看完整原始结果 JSON</summary><pre id="raw"></pre></details></section>
+      <footer>服务仅做静态解析和检测。生产环境建议通过受控 HTTPS 域名访问，避免通过明文 HTTP 上传敏感邮件。</footer>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const setStatus = (id, text, error=false) => { const el=$(id); el.textContent=text; el.className='status'+(error?' error':''); };
+      const sleep = (ms) => new Promise(r=>setTimeout(r,ms));
+      async function poll(url, done) { for(let i=0;i<60;i++){ const r=await fetch(url); const data=await r.json(); if(['completed','failed'].includes(data.status)) return data; if(done) done(data.status||'queued'); await sleep(1000); } throw new Error('任务查询超时'); }
+      async function check(){ try{const r=await fetch('/healthz'); if(!r.ok)throw 0; $('health').textContent='● 服务已连接';}catch{$('health').textContent='● 服务不可用';} }
+      $('eml').onchange=()=>{$('emlName').textContent=$('eml').files[0]?.name||'尚未选择邮件'};
+      $('dataset').onchange=()=>{$('datasetName').textContent=$('dataset').files[0]?.name||'尚未选择训练集'};
+      $('analyze').onclick=async()=>{const f=$('eml').files[0];if(!f)return setStatus('mailStatus','请选择 EML 文件',true);$('analyze').disabled=true;try{setStatus('mailStatus','正在提交邮件…');const fd=new FormData();fd.append('file',f);const r=await fetch('/api/v1/emails',{method:'POST',body:fd});const task=await r.json();if(!r.ok)throw new Error(task.detail||'提交失败');const final=await poll(task.status_url,s=>setStatus('mailStatus','正在分析：'+s));if(final.status==='failed')throw new Error(final.error_message||'分析失败');setStatus('mailStatus','分析完成');showResult(final.result);}catch(e){setStatus('mailStatus',e.message||'无法完成邮件分析',true)}finally{$('analyze').disabled=false}};
+      $('train').onclick=async()=>{const f=$('dataset').files[0];if(!f)return setStatus('trainStatus','请选择训练数据集',true);$('train').disabled=true;try{setStatus('trainStatus','正在提交训练集…');const fd=new FormData();fd.append('dataset',f);const r=await fetch('/api/v1/models/train',{method:'POST',body:fd});const task=await r.json();if(!r.ok)throw new Error(task.detail||'提交失败');const final=await poll(task.status_url,s=>setStatus('trainStatus','正在训练：'+s));if(final.status==='failed')throw new Error(final.error_message||'训练失败');const n=final.result?.samples??0;setStatus('trainStatus','训练完成：已使用 '+n+' 条有效样本。')}catch(e){setStatus('trainStatus',e.message||'无法完成模型训练',true)}finally{$('train').disabled=false}};
+      function showResult(result){const a=result.analysis||{};const v=a.verdict||{};$('result').classList.remove('hidden');$('nature').textContent=v.nature||'未知';$('score').textContent=v.score??'—';$('action').textContent=v.recommended_action||'—';$('rules').innerHTML=(a.rules?.matches||[]).map(x=>'<span class="chip">'+escapeHtml(x.rule_id||x.name||'rule')+'</span>').join('')||'<span class="chip">未命中规则</span>';$('engines').innerHTML=(a.external_engines||[]).map(e=>'<div class="engine"><b>'+escapeHtml(e.engine||'engine')+'</b> · '+escapeHtml(e.status||'unknown')+(e.score!==undefined?' · 评分 '+e.score:'')+(e.action?' · 动作 '+escapeHtml(e.action):'')+(e.reason?' · '+escapeHtml(e.reason):'')+'</div>').join('')||'<div class="engine">未配置外部检测引擎</div>';$('raw').textContent=JSON.stringify(result,null,2);$('result').scrollIntoView({behavior:'smooth',block:'start'});}
+      function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}check();
+    </script>
+  </body>
+</html>
