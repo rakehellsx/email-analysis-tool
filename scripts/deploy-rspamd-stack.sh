@@ -13,6 +13,7 @@ RSPAMD_PORT="${RSPAMD_PORT:-11333}"
 DOMAIN="${DOMAIN:-}"
 ACME_EMAIL="${ACME_EMAIL:-}"
 RSPAMD_TIMEOUT_SECONDS="${RSPAMD_TIMEOUT_SECONDS:-10}"
+DRY_RUN="${DRY_RUN:-0}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
@@ -23,6 +24,51 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 on_error() { printf 'ERROR: deployment stopped at line %s\n' "$1" >&2; }
 trap 'on_error "$LINENO"' ERR
 
+usage() {
+  cat <<'EOF'
+用法：sudo [变量=值 ...] bash scripts/deploy-rspamd-stack.sh [--dry-run]
+
+可配置变量：APP_DIR、DATA_DIR、APP_USER、APP_GROUP、HTTP_PORT、UVICORN_PORT、
+RSPAMD_PORT、DOMAIN、ACME_EMAIL、RSPAMD_TIMEOUT_SECONDS。
+
+--dry-run 仅校验参数、应用源码、端口和将生成的安全边界；不会安装软件、创建用户、
+写入系统配置、修改防火墙或重启服务。
+EOF
+}
+
+is_port() {
+  [[ "$1" =~ ^[0-9]+$ ]] && (( "$1" >= 1 && "$1" <= 65535 ))
+}
+
+validate_inputs() {
+  is_port "${HTTP_PORT}" || die "HTTP_PORT 必须为 1-65535 的整数"
+  is_port "${UVICORN_PORT}" || die "UVICORN_PORT 必须为 1-65535 的整数"
+  is_port "${RSPAMD_PORT}" || die "RSPAMD_PORT 必须为 1-65535 的整数"
+  [[ "${HTTP_PORT}" != "${UVICORN_PORT}" && "${HTTP_PORT}" != "${RSPAMD_PORT}" && "${UVICORN_PORT}" != "${RSPAMD_PORT}" ]] || die "三个监听端口必须不同"
+  [[ "${APP_DIR}" =~ ^/[A-Za-z0-9._/-]+$ && "${DATA_DIR}" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "APP_DIR 和 DATA_DIR 必须是不含空格的绝对路径"
+  [[ "${APP_USER}" =~ ^[a-z_][a-z0-9_-]*$ && "${APP_GROUP}" =~ ^[a-z_][a-z0-9_-]*$ ]] || die "APP_USER 和 APP_GROUP 格式无效"
+  [[ "${RSPAMD_TIMEOUT_SECONDS}" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "RSPAMD_TIMEOUT_SECONDS 必须是非负数字"
+  if [[ -n "${DOMAIN}" ]]; then
+    [[ "${DOMAIN}" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ && "${DOMAIN}" != *".."* ]] || die "DOMAIN 格式无效"
+    [[ "${ACME_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$ ]] || die "设置 DOMAIN 时必须提供有效 ACME_EMAIL"
+  fi
+}
+
+dry_run() {
+  validate_inputs
+  [[ -d "${SOURCE_DIR}" ]] || die "未找到 ${SOURCE_DIR}。请从仓库根目录运行脚本"
+  [[ -f "${SOURCE_DIR}/app/main.py" ]] || die "未找到 FastAPI 服务入口 app/main.py"
+  [[ -f "${SOURCE_DIR}/samples/phishing_with_attachment.eml" ]] || die "未找到 Rspamd 验收样例"
+  log "dry-run 通过：不会对系统执行任何修改"
+  printf '%s\n' "应用目录：${APP_DIR}" "数据目录：${DATA_DIR}" "Uvicorn：127.0.0.1:${UVICORN_PORT}" "Rspamd：127.0.0.1:${RSPAMD_PORT}"
+  if [[ -n "${DOMAIN}" ]]; then
+    printf 'Nginx：HTTPS 域名 %s\n' "${DOMAIN}"
+  else
+    printf 'Nginx：临时 HTTP 端口 %s\n' "${HTTP_PORT}"
+  fi
+  printf '%s\n' "安全边界：不开放 ${RSPAMD_PORT} 或 ${UVICORN_PORT}；脚本不会自动启用 UFW。"
+}
+
 require_root() {
   [[ "${EUID}" -eq 0 ]] || die "请以 root 或 sudo bash 运行此脚本"
 }
@@ -31,7 +77,7 @@ require_ubuntu() {
   source /etc/os-release
   [[ "${ID:-}" == "ubuntu" ]] || die "脚本仅支持 Ubuntu；当前系统为 ${ID:-unknown}"
   [[ -d "${SOURCE_DIR}" ]] || die "未找到 ${SOURCE_DIR}。请从仓库根目录运行脚本"
-  [[ -z "${DOMAIN}" || -n "${ACME_EMAIL}" ]] || die "设置 DOMAIN 时必须同时设置 ACME_EMAIL，以避免明文 HTTP 生产部署"
+  validate_inputs
 }
 
 install_packages() {
@@ -161,6 +207,19 @@ verify() {
     printf '提示：此地址为明文 HTTP，仅适用于受控内网验证；生产使用请设置 DOMAIN 与 ACME_EMAIL。\n'
   fi
 }
+
+case "${1:-}" in
+  --dry-run) DRY_RUN=1; shift ;;
+  --help|-h) usage; exit 0 ;;
+  "") ;;
+  *) usage; die "未知参数：$1" ;;
+esac
+[[ "$#" -eq 0 ]] || { usage; die "不接受额外位置参数"; }
+
+if [[ "${DRY_RUN}" == "1" ]]; then
+  dry_run
+  exit 0
+fi
 
 require_root
 require_ubuntu

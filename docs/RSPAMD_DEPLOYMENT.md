@@ -30,6 +30,14 @@ sudo DOMAIN=mail.example.com \
   bash scripts/deploy-rspamd-stack.sh
 ```
 
+正式执行前可使用无副作用的 dry-run 验证脚本输入、端口冲突、应用源码、样例邮件和安全边界。该命令不会安装软件、创建用户、写入 `/etc`、变更防火墙或重启服务。
+
+```bash
+sudo DOMAIN=mail.example.com \
+  ACME_EMAIL=ops@example.com \
+  bash scripts/deploy-rspamd-stack.sh --dry-run
+```
+
 如果尚未准备域名，只可进行受控网络中的临时验证：
 
 ```bash
