@@ -8,6 +8,8 @@
 | [`web-console/`](./web-console/) | React + Express + tRPC 全栈控制台源码 | 托管 Web 控制台、任务持久化、独立前端迭代 |
 | [`docs/HTTP_SERVICE_DEPLOYMENT.md`](./docs/HTTP_SERVICE_DEPLOYMENT.md) | FastAPI、Rspamd、Nginx 与 systemd 部署指南 | HTTP 服务接口部署 |
 | [`docs/WEB_CONSOLE_DEPLOYMENT.md`](./docs/WEB_CONSOLE_DEPLOYMENT.md) | 两种 Web 界面部署与运行指南 | Web 界面部署 |
+| [`docs/RSPAMD_DEPLOYMENT.md`](./docs/RSPAMD_DEPLOYMENT.md) | Rspamd 详细部署、验收、故障排查和安全运维 | 自建 Rspamd 服务 |
+| [`scripts/deploy-rspamd-stack.sh`](./scripts/deploy-rspamd-stack.sh) | 一键部署 Python API、Rspamd、Nginx 和 systemd | Ubuntu 22.04/24.04 |
 
 ## 核心能力
 
