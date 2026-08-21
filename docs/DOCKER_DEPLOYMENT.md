@@ -118,6 +118,48 @@ docker volume inspect email_analysis_data email_analysis_rspamd_data
 # 确认备份后，再手动删除指定卷。
 ```
 
+## 7. 离线导出镜像与开机启动
+
+若目标服务器无法访问 Docker Hub 或 npm 等外部软件源，应在一台可联网的构建主机完成镜像构建与导出。导出包包含 Python 服务镜像、官方 Rspamd 镜像、Compose 配置、环境变量模板、启动脚本和镜像 SHA-256 校验文件；**不包含**邮件、SQLite 任务数据库、训练数据、模型工件或 Rspamd 学习数据。
+
+### 7.1 在联网构建主机导出
+
+```bash
+cd email-analysis-tool
+chmod 0755 scripts/docker-export-images.sh scripts/docker-image-start.sh
+scripts/docker-export-images.sh --output-dir ./dist
+sha256sum -c ./dist/email-analysis-offline-*.tar.gz.sha256
+```
+
+导出完成后，将生成的 `email-analysis-offline-<UTC 时间>.tar.gz` 及对应 `.sha256` 文件复制到目标服务器。可使用受控的文件传输通道；不要把包含运行数据的 Docker 卷打包到镜像交付文件中。
+
+### 7.2 在离线目标服务器导入并启动
+
+目标服务器需要预先安装并启动 Docker Engine 与 Docker Compose V2。解压镜像包后，先编辑 `.env` 中的浏览器来源和端口设置，再以 root 执行导入与安装：
+
+```bash
+mkdir -p /tmp/email-analysis-offline
+tar -xzf email-analysis-offline-*.tar.gz -C /tmp/email-analysis-offline
+cd /tmp/email-analysis-offline
+
+cp docker.env.template .env
+# 编辑 .env：至少将 MAIL_ANALYZER_CORS_ORIGINS 改为实际 HTTPS 域名。
+sudo ./start-image.sh --dry-run
+sudo ./start-image.sh --install
+```
+
+默认安装目录为 `/opt/email-analysis-docker`。启动脚本首先校验 `images/SHA256SUMS` 和 gzip 归档，再执行 `docker load`，最后创建或保留部署目录的 `.env`、启动 Compose 栈并注册 systemd 单元。已有 `.env` 不会被新的离线包自动覆盖，因此可在升级镜像时保留已审核的生产设置。
+
+| 运维目的 | 命令 |
+|---|---|
+| 查看开机自启状态 | `sudo systemctl is-enabled email-analysis-docker.service` |
+| 查看服务与容器状态 | `sudo systemctl status email-analysis-docker.service --no-pager` 和 `sudo /opt/email-analysis-docker/start-image.sh --status` |
+| 立即重启容器栈 | `sudo systemctl restart email-analysis-docker.service` |
+| 停止容器但保留数据卷 | `sudo /opt/email-analysis-docker/start-image.sh --stop` |
+| 取消开机自启并停止服务 | `sudo systemctl disable --now email-analysis-docker.service` |
+
+> **开机启动行为：** `email-analysis-docker.service` 使用 `Requires=docker.service`，并在 Docker 服务就绪后执行 `docker compose up --detach`。Compose 中的 `restart: unless-stopped` 同时负责 Docker daemon 重启后的容器恢复。请不要手工删除 `/opt/email-analysis-docker/.env` 或命名数据卷，除非已经完成敏感邮件与模型数据的备份。
+
 ## 参考资料
 
 [1]: https://github.com/rspamd/rspamd-docker "Rspamd 官方 Docker 镜像说明"

@@ -12,6 +12,8 @@
 | [`docs/DOCKER_DEPLOYMENT.md`](./docs/DOCKER_DEPLOYMENT.md) | Docker 镜像、Compose、数据卷与容器运维指南 | Docker 化部署 |
 | [`scripts/deploy-rspamd-stack.sh`](./scripts/deploy-rspamd-stack.sh) | 一键部署 Python API、Rspamd、Nginx 和 systemd | Ubuntu 22.04/24.04 |
 | [`scripts/docker-deploy.sh`](./scripts/docker-deploy.sh) | 构建、启动、健康检查和停止 Docker Compose 服务 | Docker Engine + Compose V2 |
+| [`scripts/docker-export-images.sh`](./scripts/docker-export-images.sh) | 构建并导出可离线传输的完整镜像包 | 有网络的构建主机 |
+| [`scripts/docker-image-start.sh`](./scripts/docker-image-start.sh) | 导入离线镜像、启动 Compose 并配置 systemd 开机自启 | 目标服务器 |
 
 ## 核心能力
 
@@ -29,5 +31,7 @@
 对于自建服务器，优先阅读 [HTTP 服务部署文档](./docs/HTTP_SERVICE_DEPLOYMENT.md)。该方案将 Python API、同源控制台和 Rspamd 置于同一受控服务器，避免浏览器将请求错误地发送到 `127.0.0.1`。如需独立托管的 React 控制台，请阅读 [Web 界面部署文档](./docs/WEB_CONSOLE_DEPLOYMENT.md)。
 
 如需以容器镜像方式交付 API 与 Rspamd，请阅读 [Docker 镜像部署文档](./docs/DOCKER_DEPLOYMENT.md)。在具备 Docker Engine 和 Compose V2 的主机上，可先复制 `docker.env.template` 为 `.env`，随后执行 `scripts/docker-deploy.sh --dry-run` 检查配置，再运行 `scripts/docker-deploy.sh` 构建镜像、启动服务并验证健康检查。
+
+对于无法从 Docker Hub 拉取镜像的隔离服务器，可在联网构建主机执行 `scripts/docker-export-images.sh` 生成离线包，复制到目标服务器解压后执行 `sudo ./start-image.sh --install`。该脚本会导入镜像、启动服务，并注册 `email-analysis-docker.service` 实现开机自启；详见 [Docker 镜像部署文档](./docs/DOCKER_DEPLOYMENT.md)。
 
 > **安全提示：** 不要将 `.env`、GitHub 令牌、训练语料、原始邮件、SQLite 数据库或导出的模型提交到仓库。生产环境应使用 HTTPS，并将 Rspamd 的扫描端口限制在回环地址或专用内网。
