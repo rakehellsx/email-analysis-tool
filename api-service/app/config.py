@@ -31,6 +31,7 @@ class Settings:
     )
     rspamd_url: str | None = os.getenv("RSPAMD_URL")
     rspamd_timeout_seconds: float = float(os.getenv("RSPAMD_TIMEOUT_SECONDS", "10"))
+    rspamd_flags: str = os.getenv("RSPAMD_FLAGS", "pass_all,groups,no_log")
 
     def ensure_directories(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)

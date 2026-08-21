@@ -37,12 +37,16 @@ def test_rspamd_checkv2_request_and_normalization(monkeypatch) -> None:
         return FakeRspamdResponse()
 
     monkeypatch.setattr("app.rspamd_engine.requests.post", fake_post)
-    result = RspamdEngine("http://rspamd.test:11333/", timeout_seconds=7.5).analyze(raw_eml, parsed)
+    result = RspamdEngine(
+        "http://rspamd.test:11333/",
+        timeout_seconds=7.5,
+        request_flags="pass_all,groups,no_log",
+    ).analyze(raw_eml, parsed)
 
     assert captured["url"] == "http://rspamd.test:11333/checkv2"
     assert captured["data"] == raw_eml
     assert captured["headers"]["Content-Type"] == "message/rfc822"
-    assert captured["headers"]["Flags"] == "pass_all,groups,ext_urls,no_log"
+    assert captured["headers"]["Flags"] == "pass_all,groups,no_log"
     assert captured["headers"]["From"] == "attacker@evil.example"
     assert captured["headers"]["Rcpt"] == "employee@example.org"
     assert captured["timeout"] == 7.5

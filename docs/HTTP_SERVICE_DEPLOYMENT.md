@@ -1,6 +1,6 @@
 # HTTP 服务接口部署
 
-本文部署 `api-service/` 中的 FastAPI 服务，并在同一台 Ubuntu 24.04 服务器上运行 Rspamd 与 Nginx。建议以域名和 HTTPS 对外提供控制台及 API；Rspamd 本身不应直接暴露到公网。
+本文部署 `api-service/` 中的 FastAPI 服务，并在同一台 Ubuntu 24.04 服务器上运行 Rspamd 与 Nginx。建议以域名和 HTTPS 对外提供控制台及 API；Rspamd 本身不应直接暴露到公网。若需要以 Docker 镜像形式部署 FastAPI 与 Rspamd，请改用 [Docker 镜像部署文档](./DOCKER_DEPLOYMENT.md)。
 
 ## 架构与端口
 

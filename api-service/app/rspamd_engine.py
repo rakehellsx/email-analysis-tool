@@ -10,9 +10,10 @@ import requests
 class RspamdEngine:
     engine_name = "rspamd"
 
-    def __init__(self, base_url: str | None, timeout_seconds: float) -> None:
+    def __init__(self, base_url: str | None, timeout_seconds: float, request_flags: str) -> None:
         self.base_url = base_url.rstrip("/") if base_url else None
         self.timeout_seconds = timeout_seconds
+        self.request_flags = request_flags
 
     def analyze(self, raw_eml: bytes, parsed: dict[str, Any]) -> dict[str, Any]:
         if not self.base_url:
@@ -25,7 +26,7 @@ class RspamdEngine:
         recipients = [entry["email"] for entry in parsed["message"]["to"] if entry.get("email")]
         headers = {
             "Content-Type": "message/rfc822",
-            "Flags": "pass_all,groups,ext_urls,no_log",
+            "Flags": self.request_flags,
             "From": sender,
             "User-Agent": "mail-analyzer/1.0",
         }

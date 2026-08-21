@@ -1,0 +1,81 @@
+# Local runtime data and potentially sensitive artifacts
+data/
+models/*.joblib
+.env
+.env.*
+
+# Python tooling and test-only inputs
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+tests/
+samples/
+
+# Editor, VCS and OS files
+.git/
+.gitignore
+*.log
+.DS_Store
+*** Add File: /home/ubuntu/email-analysis-github/docker-compose.yml
+name: email-analysis
+
+services:
+  email-analysis:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile
+    image: ${EMAIL_ANALYSIS_IMAGE:-email-analysis:local}
+    environment:
+      MAIL_ANALYZER_DATABASE: /var/lib/email-analysis/mail_analyzer.db
+      MAIL_ANALYZER_JOB_DIR: /var/lib/email-analysis/jobs
+      MAIL_ANALYZER_MODEL: /var/lib/email-analysis/models/baseline_model.joblib
+      MAIL_ANALYZER_RULES: /app/config/detection_rules.yaml
+      MAIL_ANALYZER_CORS_ORIGINS: ${MAIL_ANALYZER_CORS_ORIGINS:-*}
+      MAIL_ANALYZER_MAX_UPLOAD_BYTES: ${MAIL_ANALYZER_MAX_UPLOAD_BYTES:-15728640}
+      MAIL_ANALYZER_MAX_TRAINING_UPLOAD_BYTES: ${MAIL_ANALYZER_MAX_TRAINING_UPLOAD_BYTES:-10485760}
+      MAIL_ANALYZER_MIN_TRAINING_SAMPLES: ${MAIL_ANALYZER_MIN_TRAINING_SAMPLES:-10}
+      RSPAMD_URL: http://rspamd:11333
+      RSPAMD_TIMEOUT_SECONDS: ${RSPAMD_TIMEOUT_SECONDS:-10}
+    ports:
+      - "${EMAIL_ANALYSIS_BIND_ADDRESS:-127.0.0.1}:${EMAIL_ANALYSIS_PORT:-3200}:3200"
+    volumes:
+      - email_analysis_data:/var/lib/email-analysis
+    depends_on:
+      rspamd:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=64m
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - analysis_network
+
+  rspamd:
+    image: ${RSPAMD_IMAGE:-rspamd/rspamd:4.0}
+    environment:
+      RSPAMD_LOG_TYPE: console
+      RSPAMD_PORT_NORMAL: 11333
+      RSPAMD_PORT_CONTROLLER: 11334
+      RSPAMD_PORT_PROXY: 11332
+    volumes:
+      - rspamd_data:/var/lib/rspamd
+      - ./docker/rspamd/local.d:/etc/rspamd/local.d:ro
+    expose:
+      - "11333"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - analysis_network
+
+volumes:
+  email_analysis_data:
+    name: ${EMAIL_ANALYSIS_DATA_VOLUME:-email_analysis_data}
+  rspamd_data:
+    name: ${RSPAMD_DATA_VOLUME:-email_analysis_rspamd_data}
+
+networks:
+  analysis_network:
+    name: ${EMAIL_ANALYSIS_NETWORK:-email_analysis_network}

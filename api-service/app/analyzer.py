@@ -16,7 +16,11 @@ class EmailAnalyzer:
         self.settings = app_settings
         self.rules = RulesEngine(app_settings.rules_path)
         self.local_ml = LocalMlEngine(app_settings.model_path)
-        self.rspamd = RspamdEngine(app_settings.rspamd_url, app_settings.rspamd_timeout_seconds)
+        self.rspamd = RspamdEngine(
+            app_settings.rspamd_url,
+            app_settings.rspamd_timeout_seconds,
+            app_settings.rspamd_flags,
+        )
 
     @staticmethod
     def _risk_level(score: float, malicious_attachment: bool) -> str:
