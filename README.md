@@ -10,6 +10,7 @@
 | [`docs/WEB_CONSOLE_DEPLOYMENT.md`](./docs/WEB_CONSOLE_DEPLOYMENT.md) | 两种 Web 界面部署与运行指南 | Web 界面部署 |
 | [`docs/RSPAMD_DEPLOYMENT.md`](./docs/RSPAMD_DEPLOYMENT.md) | Rspamd 详细部署、验收、故障排查和安全运维 | 自建 Rspamd 服务 |
 | [`docs/DOCKER_DEPLOYMENT.md`](./docs/DOCKER_DEPLOYMENT.md) | Docker 镜像、Compose、数据卷与容器运维指南 | Docker 化部署 |
+| [`docs/CURL_EMAIL_TESTING.md`](./docs/CURL_EMAIL_TESTING.md) | 使用 curl 上传 EML、查询任务与排查 API 问题 | API 联调与验收 |
 | [`scripts/deploy-rspamd-stack.sh`](./scripts/deploy-rspamd-stack.sh) | 一键部署 Python API、Rspamd、Nginx 和 systemd | Ubuntu 22.04/24.04 |
 | [`scripts/docker-deploy.sh`](./scripts/docker-deploy.sh) | 构建、启动、健康检查和停止 Docker Compose 服务 | Docker Engine + Compose V2 |
 | [`scripts/docker-export-images.sh`](./scripts/docker-export-images.sh) | 构建并导出可离线传输的完整镜像包 | 有网络的构建主机 |
